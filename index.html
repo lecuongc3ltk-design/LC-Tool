@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LC Tool - Micro Life Companion</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @keyframes slideInRight {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(120%); opacity: 0; }
+    }
+    .animate-slide-in { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-slide-out { animation: slideOutRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    
+    /* ÉP KHUNG POPUP CẢM ƠN SIÊU TRONG SUỐT (20% OPACITY) */
+    .super-glass-panel {
+      background: rgba(255, 255, 255, 0.25) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.4) !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08) !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen font-sans flex flex-col items-center justify-center p-6 relative overflow-hidden">
+
+  <!-- ==================== 1. DASHBOARD NGƯỜI DÙNG (LC TOOL) ==================== -->
+  <div class="w-full max-w-sm bg-white/90 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-2xl space-y-5 text-center">
+    
+    <!-- Header App -->
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3.5">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-black text-sm">
+          LC
+        </div>
+        <div class="text-left">
+          <h1 class="font-bold text-slate-800 text-sm leading-tight">LC Tool</h1>
+          <p class="text-[11px] text-slate-400">Trợ lý nhịp sinh học</p>
+        </div>
+      </div>
+      <span id="status-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Đang làm việc
+      </span>
+    </div>
+
+    <!-- Đồng hồ đếm thời gian làm việc -->
+    <div class="bg-slate-50/80 p-5 rounded-2xl border border-slate-100 text-center space-y-1">
+      <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Thời gian phiên làm việc</div>
+      <div id="display-time" class="text-4xl font-black text-slate-800 tracking-tight font-mono">00:00:00</div>
+      <div class="text-[11px] text-slate-400 pt-1">Tự động nhận diện & reset khi nghỉ > 15p</div>
+    </div>
+
+    <!-- Footer Thông tin Tác giả & Zalo (Gắn Tracking Nguồn Dashboard) -->
+    <div class="pt-2 border-t border-slate-100 space-y-3">
+      <a href="https://zalo.me/0372373414?src=dashboard&action=zalo" target="_blank" class="w-full py-2 px-4 bg-[#0068ff] hover:bg-[#0052cc] text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-500/15 flex items-center justify-center gap-2">
+        <i class="fa-solid fa-comment-dots"></i> Liên hệ hỗ trợ / Góp ý sản phẩm
+      </a>
+
+      <a href="https://ciciunity.xo.je/inz10/?src=dashboard&action=copyright" target="_blank" class="block text-[11px] text-slate-400 hover:text-blue-600 transition font-medium">
+        Copyright © by Le Cuong - 0372373414
+      </a>
+    </div>
+
+  </div>
+
+  <!-- ==================== 2. ADMIN DEVTOOLS TESTER (ĐÃ ẨN MẶC ĐỊNH) ==================== -->
+  <div id="admin-panel" class="fixed bottom-4 left-4 z-50 w-80 bg-slate-900/90 text-slate-100 backdrop-blur-xl border border-slate-700/80 p-4 rounded-2xl shadow-2xl space-y-3 text-xs">
+    
+    <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+      <div class="flex items-center gap-2 font-bold text-amber-400">
+        <i class="fa-solid fa-code"></i> ADMIN DEVTOOLS TESTER
+      </div>
+      <button onclick="toggleAdminPanel()" class="text-slate-400 hover:text-white">
+        <i class="fa-solid fa-eye-slash"></i>
+      </button>
+    </div>
+
+    <div class="bg-slate-800/80 p-2.5 rounded-xl space-y-1 font-mono text-[11px]">
+      <div>Số ngày đã dùng: <span id="debug-days-used" class="text-emerald-400 font-bold">1</span> ngày</div>
+      <div>Trạng thái Click: <span id="debug-donate-status" class="text-amber-400 font-bold">Chưa</span></div>
+    </div>
+
+    <div class="space-y-1.5 pt-1">
+      <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Kiểm thử nhanh 3 mốc ngày</div>
+      <div class="grid grid-cols-3 gap-1">
+        <button onclick="setFakeDaysUsed(15)" class="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-semibold text-[10px]">
+          Ngày 15 (2t)
+        </button>
+        <button onclick="setFakeDaysUsed(22)" class="px-2 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold text-[10px]">
+          Ngày 22 (3t)
+        </button>
+        <button onclick="setFakeDaysUsed(31)" class="px-2 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded font-semibold text-[10px]">
+          Ngày 31 (1th)
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1.5 pt-1">
+        <button onclick="simulateAddMinutes(40)" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded font-semibold">
+          <i class="fa-solid fa-bolt"></i> +40p (Test 7s)
+        </button>
+        <button onclick="triggerDonateToastManually()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded font-semibold">
+          Bật ngay 25s
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1.5 pt-0.5">
+        <button onclick="simulateIdle15Mins()" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold">
+          <i class="fa-solid fa-mug-hot"></i> Nghỉ 15p (Reset)
+        </button>
+        <button onclick="resetAllTestData()" class="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded font-semibold">
+          <i class="fa-solid fa-rotate-right"></i> Reset Ngày 1
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 3. POPUP 2 THẺ THÔNG BÁO THƯỜNG (7S) ==================== -->
+  <div id="toast-container" class="fixed top-6 right-6 z-50 pointer-events-none">
+    <div id="health-toast" class="hidden pointer-events-auto w-[380px] bg-transparent space-y-2.5 p-0 border-0 shadow-none">
+      
+      <!-- Thẻ 1: Sức Khỏe -->
+      <div class="flex items-start gap-3 bg-white/40 backdrop-blur-xl p-3.5 rounded-2xl border border-blue-400/30 shadow-xl shadow-slate-900/5 transition-all">
+        <div class="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-700 flex items-center justify-center text-sm shrink-0 mt-0.5 font-bold">
+          <i class="fa-solid fa-user-doctor"></i>
+        </div>
+        <div class="text-xs text-slate-800 leading-relaxed font-semibold drop-shadow-sm" id="health-line">
+          Bạn đã làm việc <span class="font-bold text-blue-600">40 phút</span> — Hãy chớp mắt 20s và uống một ngụm nước nhé!
+        </div>
+      </div>
+
+      <!-- Thẻ 2: Lịch & Mẹo -->
+      <div id="dynamic-card" class="flex items-start gap-3 bg-white/40 backdrop-blur-xl p-3.5 rounded-2xl border border-amber-400/30 shadow-xl shadow-slate-900/5 transition-all">
+        <div id="dynamic-icon-bg" class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center text-sm shrink-0 mt-0.5">
+          <i id="dynamic-icon" class="fa-regular fa-calendar-check"></i>
+        </div>
+        <div class="text-xs text-slate-800 leading-relaxed drop-shadow-sm" id="dynamic-content">
+          <!-- JS Render -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== 4. POPUP CẢM ƠN SIÊU TRONG SUỐT 20% (GẮN TRACKING THÔNG BÁO CẢM ƠN) ==================== -->
+  <div id="donate-toast-container" class="fixed top-6 right-6 z-50 pointer-events-none">
+    <div id="donate-toast" class="hidden pointer-events-auto w-[390px] super-glass-panel rounded-3xl p-5 space-y-3.5 animate-slide-in">
+      
+      <!-- Header Popup Cảm ơn -->
+      <div class="flex items-center justify-between border-b border-amber-900/10 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">☕</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-950 border border-amber-500/30">
+            Cảm ơn bạn đồng hành!
+          </span>
+        </div>
+        <button onclick="closeDonateToast()" class="text-slate-500 hover:text-slate-800 text-xs p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Lời nhắn cảm ơn -->
+      <div class="text-xs text-slate-900 leading-relaxed space-y-2 font-semibold drop-shadow-sm">
+        <p id="thanks-day-text">Chào bạn, bạn đã đồng hành cùng <b>LC Tool</b> được hơn 2 tuần rồi đấy! 🎉</p>
+        <p class="text-slate-700 font-medium">Hy vọng tool nhỏ này đã giúp đôi mắt và cột sống của bạn thoải mái hơn mỗi ngày. Sản phẩm được phát triển hoàn toàn miễn phí vì sức khỏe cộng đồng.</p>
+      </div>
+
+      <!-- Nút hành động (Gắn Tracking Nguồn Popup Cảm ơn & Ghi nhớ đã click) -->
+      <div class="space-y-2 pt-1">
+        <a href="https://zalo.me/0372373414?src=popup_thanks&action=zalo" target="_blank" onclick="markLinkClicked()" class="w-full py-2.5 bg-[#0068ff] hover:bg-[#0052cc] text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-500/20 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-comment-dots"></i> Liên hệ hỗ trợ / Góp ý sản phẩm
+        </a>
+        
+        <a href="https://ciciunity.xo.je/inz10/?src=popup_thanks&action=donate" target="_blank" onclick="markLinkClicked()" class="w-full py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-orange-500/20 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-mug-hot"></i> Donate
+        </a>
+      </div>
+
+      <a href="https://ciciunity.xo.je/inz10/?src=popup_thanks&action=copyright" target="_blank" onclick="markLinkClicked()" class="block text-[10px] text-center text-slate-600 hover:text-blue-600 transition font-semibold">
+        Copyright © by Le Cuong - 0372373414
+      </a>
+    </div>
+  </div>
+
+  <!-- ==================== 5. JAVASCRIPT LOGIC ==================== -->
+  <script>
+    const SHOW_ADMIN_PANEL = false; // Đã ẩn Admin Panel
+
+    const SOLAR_HOLIDAYS = [
+      { day: 1, month: 1, name: "Tết Dương Lịch" },
+      { day: 14, month: 2, name: "Valentine (14/2)" },
+      { day: 8, month: 3, name: "Quốc tế Phụ nữ (8/3)" },
+      { day: 30, month: 4, name: "Giải phóng Miền Nam" },
+      { day: 1, month: 5, name: "Quốc tế Lao động" },
+      { day: 2, month: 9, name: "Quốc khánh (2/9)" },
+      { day: 20, month: 10, name: "Ngày Phụ nữ VN (20/10)" },
+      { day: 20, month: 11, name: "Ngày Nhà giáo VN (20/11)" },
+      { day: 25, month: 12, name: "Giáng sinh (Noel)" }
+    ];
+
+    const HEALTH_TIPS_AND_QUOTES = [
+      { icon: "fa-solid fa-eye", color: "text-emerald-700", bg: "bg-emerald-500/20", border: "border-emerald-400/30", text: "<b>Quy tắc 20-20-20:</b> Cứ 20 phút, hãy nhìn ra xa 6 mét trong 20 giây để thư giãn mắt." },
+      { icon: "fa-solid fa-bottle-water", color: "text-blue-700", bg: "bg-blue-500/20", border: "border-blue-400/30", text: "<b>Nước là nhiên liệu cho não:</b> Uống ngụm nước nhỏ ngay cả khi chưa thấy khát nhé." },
+      { icon: "fa-solid fa-person-running", color: "text-amber-800", bg: "bg-amber-500/20", border: "border-amber-400/30", text: "<b>Thả lỏng tư thế:</b> Hạ vai xuống, thả lỏng cằm và thở sâu 3 nhịp." }
+    ];
+
+    let totalSeconds = 0;
+    let idleSeconds = 0;
+    let timerInterval = null;
+    let toastTimeout = null;
+    let donateToastTimeout = null;
+    let reminderCount = 0;
+    
+    const REMINDER_INTERVAL_MINS = 40;
+    const IDLE_LIMIT_SECONDS = 15 * 60;
+
+    window.onload = () => { 
+      initLaunchDateTracker();
+      startTimer(); 
+      setupIdleDetectors();
+      updateDebugPanelInfo();
+
+      if (!SHOW_ADMIN_PANEL) {
+        document.getElementById('admin-panel').style.display = 'none';
+      }
+    };
+
+    function initLaunchDateTracker() {
+      if (!localStorage.getItem('firstLaunchDate')) {
+        localStorage.setItem('firstLaunchDate', new Date().toISOString());
+      }
+    }
+
+    function getDaysUsed() {
+      const firstLaunch = new Date(localStorage.getItem('firstLaunchDate'));
+      const today = new Date();
+      const diffTime = Math.abs(today - firstLaunch);
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    function markLinkClicked() {
+      localStorage.setItem('hasClickedDonateLink', 'true');
+      updateDebugPanelInfo();
+    }
+
+    function isDonateClicked() {
+      return localStorage.getItem('hasClickedDonateLink') === 'true';
+    }
+
+    function setupIdleDetectors() {
+      const resetIdle = () => {
+        if (idleSeconds >= IDLE_LIMIT_SECONDS) {
+          totalSeconds = 0;
+          updateStatusBadge(true);
+        }
+        idleSeconds = 0;
+      };
+      window.addEventListener('mousemove', resetIdle);
+      window.addEventListener('keydown', resetIdle);
+      window.addEventListener('click', resetIdle);
+      window.addEventListener('scroll', resetIdle);
+    }
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        totalSeconds++;
+        idleSeconds++;
+        updateTimeDisplay();
+
+        if (idleSeconds >= IDLE_LIMIT_SECONDS) {
+          totalSeconds = 0;
+          updateStatusBadge(false);
+        } else {
+          updateStatusBadge(true);
+        }
+
+        if (totalSeconds > 0 && totalSeconds % (REMINDER_INTERVAL_MINS * 60) === 0) {
+          triggerHealthReminder(Math.floor(totalSeconds / 60));
+        }
+      }, 1000);
+    }
+
+    function updateStatusBadge(isWorking) {
+      const badge = document.getElementById('status-badge');
+      if (isWorking) {
+        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/60";
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Đang làm việc`;
+      } else {
+        badge.className = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60";
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span> Đã tự nghỉ (>15p)`;
+      }
+    }
+
+    function updateTimeDisplay() {
+      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      document.getElementById('display-time').innerText = `${hours}:${minutes}:${seconds}`;
+    }
+
+    function getUpcomingEventInfo() {
+      const today = new Date();
+      const currentDay = today.getDate();
+      const currentMonth = today.getMonth() + 1;
+      const todaySolarStr = `${String(currentDay).padStart(2, '0')}/${String(currentMonth).padStart(2, '0')}`;
+      let eventText = "🌱 Một ngày bình yên — Hãy giữ năng lượng làm việc tích cực nhé!";
+
+      for (let holiday of SOLAR_HOLIDAYS) {
+        if (holiday.day === currentDay && holiday.month === currentMonth) {
+          eventText = `🎉 Hôm nay là <b>${holiday.name}</b>! Chúc bạn một ngày trọn vẹn.`;
+          break;
+        }
+        if (holiday.month === currentMonth && holiday.day > currentDay) {
+          const diffDays = holiday.day - currentDay;
+          if (diffDays <= 7) {
+            eventText = `📌 <b>Nhắc nhở:</b> Còn ${diffDays} ngày nữa là đến ${holiday.name}!`;
+            break;
+          }
+        }
+      }
+      return { solar: todaySolarStr, lunar: "05/09", event: eventText };
+    }
+
+    function triggerHealthReminder(minutes) {
+      reminderCount++;
+
+      let healthText = `Bạn đã làm việc <span class='font-bold text-blue-600'>${minutes} phút</span> — Hãy chớp mắt 20s và uống một ngụm nước nhé!`;
+      if (minutes > 40 && minutes <= 80) {
+        healthText = `Đã trôi qua <span class='font-bold text-amber-700'>${minutes} phút</span> — Hãy xoay nhẹ cổ sang hai bên và thả lỏng vai nào!`;
+      } else if (minutes > 80) {
+        healthText = `Bạn đã ngồi liên tục <span class='font-bold text-rose-600'>${minutes} phút</span>! Nên đứng dậy đi lại 5 phút để bảo vệ cột sống.`;
+      }
+      document.getElementById('health-line').innerHTML = healthText;
+
+      const dynamicCard = document.getElementById('dynamic-card');
+      const dynamicIconBg = document.getElementById('dynamic-icon-bg');
+      const dynamicIcon = document.getElementById('dynamic-icon');
+      const dynamicContent = document.getElementById('dynamic-content');
+
+      if (reminderCount === 1) {
+        const info = getUpcomingEventInfo();
+        dynamicCard.className = "flex items-start gap-3 bg-white/40 backdrop-blur-xl p-3.5 rounded-2xl border border-amber-400/30 shadow-xl transition-all";
+        dynamicIconBg.className = "w-8 h-8 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center text-sm shrink-0 mt-0.5";
+        dynamicIcon.className = "fa-regular fa-calendar-check";
+        dynamicContent.innerHTML = `
+          <div class="font-bold text-slate-900">📅 Hôm nay: ${info.solar} <span class="font-normal text-slate-600 text-[11px]">(Âm lịch: ${info.lunar})</span></div>
+          <div class="text-amber-900 font-medium pt-0.5">${info.event}</div>
+        `;
+      } else {
+        const item = HEALTH_TIPS_AND_QUOTES[(reminderCount - 2) % HEALTH_TIPS_AND_QUOTES.length];
+        dynamicCard.className = `flex items-start gap-3 bg-white/40 backdrop-blur-xl p-3.5 rounded-2xl border ${item.border} shadow-xl transition-all`;
+        dynamicIconBg.className = `w-8 h-8 rounded-xl ${item.bg} ${item.color} flex items-center justify-center text-sm shrink-0 mt-0.5`;
+        dynamicIcon.className = item.icon;
+        dynamicContent.innerHTML = `<div class="text-slate-800 leading-relaxed font-semibold pt-0.5 drop-shadow-sm">${item.text}</div>`;
+      }
+
+      const toast = document.getElementById('health-toast');
+      toast.classList.remove('hidden', 'animate-slide-out');
+      toast.classList.add('animate-slide-in');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      
+      toastTimeout = setTimeout(() => { 
+        closeToast(); 
+        checkAndShowDonateToast();
+      }, 7000);
+    }
+
+    function closeToast() {
+      const toast = document.getElementById('health-toast');
+      toast.classList.remove('animate-slide-in');
+      toast.classList.add('animate-slide-out');
+      setTimeout(() => { toast.classList.add('hidden'); }, 350);
+    }
+
+    function checkAndShowDonateToast() {
+      const daysUsed = getDaysUsed();
+      const isAlreadyClicked = isDonateClicked();
+
+      if (!isAlreadyClicked && daysUsed >= 15) {
+        const lastShownDate = localStorage.getItem('lastDonateShownDate');
+        const todayStr = new Date().toDateString();
+
+        if (lastShownDate !== todayStr) {
+          setTimeout(() => {
+            triggerDonateToastManually();
+            localStorage.setItem('lastDonateShownDate', todayStr);
+          }, 500);
+        }
+      }
+    }
+
+    function triggerDonateToastManually() {
+      const daysUsed = getDaysUsed();
+      let dayText = "Chào bạn, bạn đã đồng hành cùng <b>LC Tool</b> được hơn 2 tuần rồi đấy! 🎉";
+      if (daysUsed >= 22 && daysUsed < 31) {
+        dayText = "Chào bạn, bạn đã đồng hành cùng <b>LC Tool</b> được hơn 3 tuần rồi đấy! 🎉";
+      } else if (daysUsed >= 31) {
+        dayText = "Chào bạn, bạn đã đồng hành cùng <b>LC Tool</b> được tròn 1 tháng rồi đấy! 🎉";
+      }
+      document.getElementById('thanks-day-text').innerHTML = dayText;
+
+      const donateToast = document.getElementById('donate-toast');
+      donateToast.classList.remove('hidden', 'animate-slide-out');
+      donateToast.classList.add('animate-slide-in');
+
+      if (donateToastTimeout) clearTimeout(donateToastTimeout);
+      donateToastTimeout = setTimeout(() => {
+        closeDonateToast();
+      }, 25000);
+    }
+
+    function closeDonateToast() {
+      const donateToast = document.getElementById('donate-toast');
+      donateToast.classList.remove('animate-slide-in');
+      donateToast.classList.add('animate-slide-out');
+      setTimeout(() => { donateToast.classList.add('hidden'); }, 350);
+    }
+
+    function updateDebugPanelInfo() {
+      document.getElementById('debug-days-used').innerText = getDaysUsed();
+      document.getElementById('debug-donate-status').innerText = isDonateClicked() ? "Đã click (Đã dừng)" : "Chưa (Chờ mốc)";
+    }
+
+    function simulateAddMinutes(mins) {
+      totalSeconds += mins * 60;
+      idleSeconds = 0;
+      updateTimeDisplay();
+      triggerHealthReminder(Math.floor(totalSeconds / 60));
+    }
+
+    function simulateIdle15Mins() {
+      idleSeconds = 15 * 60;
+      totalSeconds = 0;
+      updateTimeDisplay();
+      updateStatusBadge(false);
+      closeToast();
+    }
+
+    function setFakeDaysUsed(days) {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - (days - 1));
+      localStorage.setItem('firstLaunchDate', pastDate.toISOString());
+      localStorage.removeItem('hasClickedDonateLink');
+      localStorage.removeItem('lastDonateShownDate');
+      updateDebugPanelInfo();
+      triggerDonateToastManually();
+    }
+
+    function resetAllTestData() {
+      localStorage.clear();
+      initLaunchDateTracker();
+      totalSeconds = 0;
+      reminderCount = 0;
+      idleSeconds = 0;
+      updateTimeDisplay();
+      updateStatusBadge(true);
+      updateDebugPanelInfo();
+      closeToast();
+      closeDonateToast();
+    }
+
+    function toggleAdminPanel() {
+      const panel = document.getElementById('admin-panel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>
